@@ -1,7 +1,7 @@
 itsmoredangerous
 ================
 
-It's More Dangerous ... so better encrypt and sign this.
+It's More Dangerous . . . so better encrypt and sign this.
 
 Purpose
 -------
@@ -57,6 +57,34 @@ print Signer('-hello-signer-secretkey', 'salt-').unsign(signed_message)
   keys expired every hour or so, an adversary would not be able to tell the difference between
   an old expired token and a fake token, and thus could not derive this unauthorized information
   about a user.
+
+
+How these issues are addressed
+------------------------------
+
+* [itsmoredangerous][imd] protects both message integrity and confidentiality.
+
+* [itsmoredangerous][imd] does not allow developers to read messages without first checking
+  the signature and expiration. A project developer cannot accidentally use information stored
+  in the message without first checking that the message is signed.
+
+* [itsmoredangerous][imd] requires the signer of a message to determine the expiration
+  date/time of that message, or a configurable default value is used.
+
+* [itsmoredangerous][imd] enforces the use of namespaces. It does not and cannot require that
+  a project developer use them in a way that makes sense, but it does try to prevent developers
+  from accidentally forgetting to namespace their signatures.
+
+* [itsmoredangerous][imd] uses HMAC to derive the signing and encryption keys from the long-term
+  key.
+
+* [itsmoredangerous][imd] uses `(datetime.utcnow() - datetime(1970, 1, 1)).total_seconds()`
+  to get the current time in seconds.
+
+* [itsmoredangerous][imd] periodically expires keys (both signing and encryption keys) after
+  a configurable amount of time. For example, if the time period is one hour, once per hour
+  all keys older than one hour will become expired. This prevents the type of attack described
+  above if an adversary has access to long-expired tokens.
 
 
 
