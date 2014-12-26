@@ -35,7 +35,7 @@ from itsdangerous import Signer
 signed_message = Signer('-secretkey', 'salt-signer-hello-').sign('this is a message')
 print Signer('-hello-signer-secretkey', 'salt-').unsign(signed_message)
   ```
-  outputs 'this is a message' instead of raising a BadSignature exception. This seems to be
+  outputs `this is a message` instead of raising a `BadSignature` exception. This seems to be
   for compatibility with [django][dj]. However, safety rather than compatibility should
   be the objective of a security library. Although it is reasonable for compatibility to be
   an option, the default should be the safest possible option. In this case, that means the
