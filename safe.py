@@ -90,21 +90,20 @@ class Serializer (object):
         return urlsafe_b64encode(sig + ctext).rstrip('=')
 
 
-    def loads (self, s, namespace, expires=None):
-        if expires is None: expires = self.expires
+    def loads (self, s, namespace):
         try:
             s = str(s)
             b64_pad = 4 - (len(s) % 4)
             s = s + '=' * b64_pad
             s = urlsafe_b64decode(s)
+            sig, ctext = s[:HMAC_SIZE], s[HMAC_SIZE:]
+            tnow = now()
         except KeyboardInterrupt:
             raise
         except:
             raise MalformedSignature
         # VERIFY MAC FIRST
-        sig, ctext = s[:HMAC_SIZE], s[HMAC_SIZE:]
-        tnow = now()
-        for i in [1, 0, -1]:
+        for i in [1, 0, -1]: # TODO: make this constant-time to avoid leaking key age info.
             enc_key, sig_key = self.__get_keys(namespace, tnow, i)
             if hmac_verify(sig_key, ctext, sig):
                 break
@@ -116,9 +115,8 @@ class Serializer (object):
         cipher = AES.new(enc_key, AES.MODE_CBC, iv)
         s = cipher.decrypt(ctext)
         # Verify the timestamp before leaking any information with zlib and json.
-        t, e = struct.unpack('!QQ', s[:16])
-        age = now() - t
-        expires = min(expires, e)
+        t, expires = struct.unpack('!QQ', s[:16])
+        age = tnow - t
         if age > expires:
             raise ExpiredSignature
         s = s[16:] # Remove timestamp.
