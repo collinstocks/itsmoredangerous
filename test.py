@@ -3,7 +3,7 @@
 
 from itsmoredangerous import (Serializer, CompressedSerializer)
 
-serializer = CompressedSerializer()
+serializer = Serializer()
 
 obj = {
     b'hello' : b'world',
@@ -12,6 +12,9 @@ obj = {
     u'Antonín' : u'Dvořák',
     'list' : range(5),
     'dict' : {},
+    True : False,
+    False : None,
+    None : True,
 }
 obj['self'] = obj
 

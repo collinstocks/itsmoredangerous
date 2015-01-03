@@ -62,6 +62,9 @@ def bytes_dec (f):
 
 
 types = Enum(
+    'NONE',
+    'TRUE',
+    'FALSE',
     'CYCLE',
     'INTp',
     'INTn',
@@ -74,13 +77,25 @@ types = Enum(
 
 
 def _encode (f, data, objmap):
-    obj_id = id(data)
+    if data in (None, True, False):
+        obj_id = (data, len(objmap))  # New unique object id.
+    else:
+        obj_id = id(data)
     cycle = obj_id in objmap
 
     if not cycle:
         objmap[obj_id] = len(objmap)
 
-    if cycle:
+    if data is None:
+        uintvar_enc(f, types.NONE)
+
+    elif data is True:
+        uintvar_enc(f, types.TRUE)
+
+    elif data is False:
+        uintvar_enc(f, types.FALSE)
+
+    elif cycle:
         uintvar_enc(f, types.CYCLE)
         uintvar_enc(f, objmap[obj_id])
 
@@ -127,7 +142,13 @@ def _decode (f, objlist):
     objtype = uintvar_dec(f)
     ret = None
 
-    if objtype == types.CYCLE:
+    if objtype == types.NONE:
+        ret = None
+    elif objtype == types.TRUE:
+        ret = True
+    elif objtype == types.FALSE:
+        ret = False
+    elif objtype == types.CYCLE:
         ret = objlist[uintvar_dec(f)]
     elif objtype == types.INTp:
         ret = uintvar_dec(f)
