@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from itsmoredangerous import (Serializer, CompressedSerializer)
+from itsmoredangerous import (Serializer)
 
 serializer = Serializer()
 
@@ -11,7 +11,7 @@ obj = {
     7.8 : 12345678901234567890,
     u'Antonín' : u'Dvořák',
     'list' : range(5),
-    'dict' : {},
+    'dict' : {'blah' : 'monkey'},
     True : False,
     False : None,
     None : True,

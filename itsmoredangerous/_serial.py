@@ -1,8 +1,10 @@
 from cStringIO import StringIO
 from gzip import GzipFile
 import struct
+from zlib import compress as zcompress, decompress as zdecompress
 
 from ._utils import Enum, Object
+from ._smaz import compress as scompress, decompress as sdecompress
 
 
 
@@ -61,6 +63,17 @@ def bytes_dec (f):
 
 
 
+def try_compress (s):
+    ss = scompress(s, check_ascii=False)
+    zs = zcompress(s)
+    if len(ss) < min(len(s), len(zs)):
+        return 's', ss
+    if len(zs) < min(len(s), len(ss)):
+        return 'z', zs
+    return '', s
+
+
+
 types = Enum(
     'NONE',
     'TRUE',
@@ -70,9 +83,13 @@ types = Enum(
     'INTn',
     'FLOAT',
     'BYTES',
+    'sBYTES',
+    'zBYTES',
     'UNICODE',
-    'OBJ',
+    'sUNICODE',
+    'zUNICODE',
     'LIST',
+    'OBJ',
 )
 
 
@@ -112,14 +129,35 @@ def _encode (f, data, objmap):
         double_enc(f, data)
 
     elif isinstance(data, type(b'')):
-        uintvar_enc(f, types.BYTES)
+        zmethod, data = try_compress(data)
+        if zmethod == '':
+            uintvar_enc(f, types.BYTES)
+        elif zmethod == 's':
+            uintvar_enc(f, types.sBYTES)
+        elif zmethod == 'z':
+            uintvar_enc(f, types.zBYTES)
         bytes_enc(f, data)
 
     elif isinstance(data, type(u'')):
-        uintvar_enc(f, types.UNICODE)
-        bytes_enc(f, data.encode('utf_8'))
+        data = data.encode('utf_8')
+        zmethod, data = try_compress(data)
+        if zmethod == '':
+            uintvar_enc(f, types.UNICODE)
+        elif zmethod == 's':
+            uintvar_enc(f, types.sUNICODE)
+        elif zmethod == 'z':
+            uintvar_enc(f, types.zUNICODE)
+        bytes_enc(f, data)
+
+    elif isinstance(data, list):
+        uintvar_enc(f, types.LIST)
+        uintvar_enc(f, list.__len__(data))
+        for val in list.__iter__(data):
+            _encode(f, val, objmap)
 
     elif isinstance(data, dict):
+        if not isinstance(data, dict):
+            data = getattr(data, '__dict__')
         uintvar_enc(f, types.OBJ)
         keys = dict.keys(data)
         uintvar_enc(f, len(keys))
@@ -127,11 +165,8 @@ def _encode (f, data, objmap):
             _encode(f, key, objmap)
             _encode(f, dict.__getitem__(data, key), objmap)
 
-    elif isinstance(data, list):
-        uintvar_enc(f, types.LIST)
-        uintvar_enc(f, list.__len__(data))
-        for val in list.__iter__(data):
-            _encode(f, val, objmap)
+    else:
+        raise ValueError('cannot serialize type %s' % type(data))
 
 
 def encode (f, data):
@@ -158,12 +193,20 @@ def _decode (f, objlist):
         ret = double_dec(f)
     elif objtype == types.BYTES:
         ret = bytes_dec(f)
+    elif objtype == types.sBYTES:
+        ret = sdecompress(bytes_dec(f))
+    elif objtype == types.zBYTES:
+        ret = zdecompress(bytes_dec(f))
     elif objtype == types.UNICODE:
         ret = bytes_dec(f).decode('utf_8')
-    elif objtype == types.OBJ:
-        ret = Object()
+    elif objtype == types.sUNICODE:
+        ret = sdecompress(bytes_dec(f)).decode('utf_8')
+    elif objtype == types.UNICODE:
+        ret = zdecompress(bytes_dec(f)).decode('utf_8')
     elif objtype == types.LIST:
         ret = []
+    elif objtype == types.OBJ:
+        ret = Object()
 
     objlist.append(ret)
 
