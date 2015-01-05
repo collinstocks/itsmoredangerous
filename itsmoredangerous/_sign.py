@@ -1,5 +1,4 @@
-from hashlib import sha384
-import hmac
+from ._crypto import MAC
 import os
 
 _builtin_constant_compare = getattr(hmac, 'compare_digest', None)
@@ -23,19 +22,19 @@ def _constant_compare (correct, unknown):
         left = correct
     else:
         result = 1
-        left = unknown  # Do not allow `correct' to go out of scope.
+        left = unknown  # Do not allow `correct' object to be garbage-collected.
     for L, R in zip(left, unknown):
         # If the integer cache goes up to 255, this should be constant time.
         result |= ord(L) ^ ord(R)
     return result == 0
 
 
-if _builtin_constant_compare:
-    _constant_compare = builtin_constant_compare
+if _builtin_constant_compare is not None:
+    _constant_compare = _builtin_constant_compare
 
 
-def sign (key, s):
-    return hmac.HMAC(key, msg=s, digestmod=sha384).digest()
+def sign (key, namespace, s, security=256):
+    return MAC(key, namespace, s).digest(security)
 
 
 def compare_digest (correct, unknown):
@@ -52,12 +51,12 @@ def compare_digest (correct, unknown):
     of `correct' than is leaked by the signature algorithm (HMAC) about its
     input message.
     '''
-    k = os.urandom(48)
+    k = os.urandom(64)
     left = sign(k, correct)
     right = sign(k, unknown)
     return _constant_compare(left, right)
 
 
-def check_signature (key, s, signature):
-    correct = sign(key, s)
+def verify (key, namespace, s, signature):
+    correct = sign(key, namespace, s)
     return compare_digest(correct, signature)

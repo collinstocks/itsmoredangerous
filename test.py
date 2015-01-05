@@ -1,9 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from itsmoredangerous import (Serializer)
-
-serializer = Serializer()
+from itsmoredangerous import PythonSerializer
 
 obj = {
     b'hello' : b'world',
@@ -19,7 +17,7 @@ obj = {
 obj['self'] = obj
 
 
-s = serializer.dumps(obj)
+s = PythonSerializer.dumps(obj)
 print repr(s)
 print len(s)
-print serializer.loads(s)
+print PythonSerializer.loads(s)

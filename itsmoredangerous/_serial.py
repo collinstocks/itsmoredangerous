@@ -1,5 +1,5 @@
 from cStringIO import StringIO
-from gzip import GzipFile
+import json
 import struct
 from zlib import compress as zcompress, decompress as zdecompress
 
@@ -234,33 +234,49 @@ def decode (f):
 
 class Serializer (object):
 
-    def dump (self, f, obj):
-        encode(f, obj)
+    @classmethod
+    def dump (cls, f, obj):
+        raise NotImplementedError
 
-    def load (self, f):
-        return decode(f)
+    @classmethod
+    def load (cls, f, obj):
+        raise NotImplementedError
 
-    def dumps (self, obj):
+    @classmethod
+    def dumps (cls, obj):
         f = StringIO()
-        self.dump(f, obj)
+        cls.dump(f, obj)
         return f.getvalue()
 
-    def loads (self, s):
+    @classmethod
+    def loads (cls, s):
         f = StringIO(s)
-        return self.load(f)
+        return cls.load(f)
 
 
 
 
-class CompressedSerializer (Serializer):
+class PythonSerializer (Serializer):
 
+    @classmethod
+    def dump (cls, f, obj):
+        encode(f, obj)
+
+    @classmethod
+    def load (cls, f):
+        return decode(f)
+
+
+
+class JSONSerializer (Serializer):
+
+    @classmethod
     def dump (self, f, obj):
-        with GzipFile(fileobj=f, mode='wb') as f:
-            Serializer.dump(self, f, obj)
+        json.dump(obj, f, separators=(',', ':'))
 
+    @classmethod
     def load (self, f):
-        with GzipFile(fileobj=f, mode='rb') as f:
-            return Serializer.load(self, f)
+        return json.load(f)
 
 
 

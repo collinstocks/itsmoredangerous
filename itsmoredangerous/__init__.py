@@ -1,3 +1,1 @@
-from ._serial import (
-    Serializer,
-)
+from ._serial import PythonSerializer
