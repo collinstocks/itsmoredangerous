@@ -13,6 +13,7 @@ obj = {
     True : False,
     False : None,
     None : True,
+    ('key', 'tuple') : ('value', 'tuple'),
 }
 obj['self'] = obj
 
@@ -20,4 +21,5 @@ obj['self'] = obj
 s = PythonSerializer.dumps(obj)
 print repr(s)
 print len(s)
+print obj
 print PythonSerializer.loads(s)
